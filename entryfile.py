@@ -2,6 +2,11 @@ import tarfile
 import os
 import json
 
+"""
+이 코드는 실행하지 않습니다.
+이 python 코드는 html 코드에 포함되어 있으며 삭제하셔도 됩니다.
+"""
+
 def create_entry_file(project_json_content, output_filename="my_project.ent"):
     """
     project.json 내용을 바탕으로 엔트리(.ent) 파일을 생성합니다.
