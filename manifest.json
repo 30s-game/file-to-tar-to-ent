@@ -11,6 +11,6 @@
     "downloads"
   ],
   "content_security_policy": {
-    "extension_pages": "script-src 'self' https://cdn.jsdelivr.net; object-src 'self'"
+    "extension_pages": "script-src 'self'; object-src 'self'"
   }
 }
