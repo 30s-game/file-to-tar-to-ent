@@ -1,0 +1,16 @@
+{
+  "manifest_version": 3,
+  "name": "엔트리 .ent 파일 생성기",
+  "version": "1.0",
+  "description": "JSON 데이터를 엔트리 작품 파일(.ent)로 변환해주는 도구입니다.",
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Entry Converter"
+  },
+  "permissions": [
+    "downloads"
+  ],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self' https://cdn.jsdelivr.net; object-src 'self'"
+  }
+}
