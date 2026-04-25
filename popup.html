@@ -3,175 +3,104 @@
 <head>
     <meta charset="UTF-8">
     <title>Entry .ent Converter</title>
-    <!-- 확장 프로그램 팝업 크기 지정 -->
     <style>
         body {
             width: 450px;
             margin: 0;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f9fafb;
+            font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif;
+            background-color: #f3f4f6;
         }
         .container {
-            padding: 16px;
+            padding: 20px;
         }
         h1 {
-            font-size: 1.25rem;
-            font-weight: bold;
-            color: #1f2937;
-            margin-bottom: 8px;
+            font-size: 1.2rem;
+            color: #111827;
+            margin-top: 0;
+            margin-bottom: 10px;
         }
         p {
-            font-size: 0.875rem;
+            font-size: 0.85rem;
             color: #4b5563;
-            margin-bottom: 16px;
+            margin-bottom: 15px;
         }
         textarea {
             width: 100%;
-            height: 250px;
+            height: 220px;
             padding: 12px;
-            font-family: monospace;
+            font-family: 'Consolas', 'Monaco', monospace;
             font-size: 12px;
             border: 1px solid #d1d5db;
             border-radius: 8px;
             box-sizing: border-box;
+            background-color: #fff;
             outline: none;
-            resize: vertical;
+            resize: none;
         }
         textarea:focus {
-            border-color: #3b82f6;
-            ring: 2px #3b82f6;
+            border-color: #00c73c;
+            box-shadow: 0 0 0 2px rgba(0, 199, 60, 0.1);
         }
-        .footer {
+        .controls {
+            margin-top: 15px;
             display: flex;
             align-items: center;
-            gap: 12px;
-            margin-top: 16px;
+            gap: 15px;
         }
         button {
-            background-color: #2563eb;
+            background-color: #00c73c;
             color: white;
             border: none;
-            padding: 10px 16px;
+            padding: 10px 20px;
             border-radius: 6px;
-            font-weight: 600;
+            font-weight: bold;
+            font-size: 0.9rem;
             cursor: pointer;
             transition: background-color 0.2s;
         }
         button:hover {
-            background-color: #1d4ed8;
+            background-color: #00b336;
         }
         button:disabled {
             background-color: #9ca3af;
             cursor: not-allowed;
         }
         #status {
-            font-size: 0.75rem;
+            font-size: 12px;
             color: #6b7280;
         }
         #log {
-            margin-top: 12px;
-            padding: 8px;
-            background-color: #111827;
+            margin-top: 15px;
+            padding: 12px;
+            background-color: #1f2937;
             color: #10b981;
             border-radius: 6px;
             font-size: 11px;
-            max-height: 80px;
-            overflow-y: auto;
             display: none;
+            white-space: pre-wrap;
+            max-height: 100px;
+            overflow-y: auto;
         }
     </style>
-    <!-- Pyodide 로드 -->
-    <script src="https://cdn.jsdelivr.net/pyodide/v0.23.4/full/pyodide.js"></script>
 </head>
 <body>
     <div class="container">
-        <h1>엔트리 파일 생성기</h1>
-        <p>project.json 내용을 입력해 주세요.</p>
-
+        <h1>엔트리 파일(.ent) 생성기</h1>
+        <p>변환할 project.json 데이터를 아래에 붙여넣으세요.</p>
+        
         <textarea id="jsonInput" placeholder='{"objects": [], "variables": [], "messages": [], "functions": [], "scenes": [{"name": "무대", "id": "scene_1"}]}'></textarea>
-
-        <div class="footer">
+        
+        <div class="controls">
             <button id="convertBtn" disabled>변환 및 다운로드</button>
             <div id="status">환경 준비 중...</div>
         </div>
-
+        
         <div id="log"></div>
     </div>
 
-    <script>
-        const jsonInput = document.getElementById('jsonInput');
-        const convertBtn = document.getElementById('convertBtn');
-        const statusMsg = document.getElementById('status');
-        const logArea = document.getElementById('log');
-        let pyodide;
-
-        // 초기화 함수
-        async function init() {
-            try {
-                pyodide = await loadPyodide();
-                statusMsg.innerText = "준비 완료";
-                convertBtn.disabled = false;
-            } catch (err) {
-                statusMsg.innerText = "로딩 실패";
-                console.error(err);
-            }
-        }
-
-        init();
-
-        convertBtn.addEventListener('click', async () => {
-            const jsonData = jsonInput.value.trim();
-            if (!jsonData) return;
-
-            logArea.style.display = 'block';
-            logArea.innerText = "처리 중...";
-            convertBtn.disabled = true;
-
-            try {
-                // Python 로직 실행 (인메모리 압축)
-                const pythonCode = `
-import tarfile
-import os
-import base64
-from io import BytesIO
-
-def run_conversion(json_str):
-    os.makedirs("entry/temp", exist_ok=True)
-    with open("entry/temp/project.json", "w", encoding="utf-8") as f:
-        f.write(json_str)
-    
-    out = BytesIO()
-    with tarfile.open(fileobj=out, mode="w") as tar:
-        tar.add("entry", arcname="")
-    return base64.b64encode(out.getvalue()).decode()
-
-run_conversion('''${jsonData}''')
-                `;
-
-                const base64Data = await pyodide.runPythonAsync(pythonCode);
-                
-                // 다운로드 처리
-                const binary = atob(base64Data);
-                const bytes = new Uint8Array(binary.length);
-                for (let i = 0; i < binary.length; i++) {
-                    bytes[i] = binary.charCodeAt(i);
-                }
-                
-                const blob = new Blob([bytes], { type: "application/octet-stream" });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = "project.ent";
-                a.click();
-                URL.revokeObjectURL(url);
-
-                logArea.innerText = "완료! 파일이 생성되었습니다.";
-            } catch (err) {
-                logArea.innerText = "에러: " + err.message;
-            } finally {
-                convertBtn.disabled = false;
-            }
-        });
-    </script>
+    <!-- Pyodide 라이브러리 로드 -->
+    <script src="https://cdn.jsdelivr.net/pyodide/v0.23.4/full/pyodide.js"></script>
+    <!-- 분리된 로직 파일 로드 -->
+    <script src="popup.js"></script>
 </body>
 </html>
