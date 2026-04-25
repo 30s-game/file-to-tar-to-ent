@@ -26,33 +26,15 @@
 <body class="bg-gray-100 min-h-screen p-4 md:p-8">
     <div class="max-w-4xl mx-auto bg-white rounded-xl shadow-md overflow-hidden p-6">
         <h1 class="text-2xl font-bold text-gray-800 mb-4">엔트리 파일(.ent) 생성기</h1>
-        <p class="text-gray-600 mb-6">아래의 JSON 데이터를 수정하고 버튼을 누르면 파이썬 스크립트가 실행되어 엔트리 작품 파일이 생성됩니다.</p>
+        <p class="text-gray-600 mb-6">아래의 JSON 데이터를 입력하고 버튼을 누르면 파이썬 스크립트가 실행되어 엔트리 작품 파일이 생성됩니다.</p>
 
         <div class="mb-4">
             <label class="block text-sm font-medium text-gray-700 mb-2">project.json 내용</label>
-            <textarea id="jsonInput" class="w-full h-64 p-4 font-mono text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none">
-{
-  "objects": [
-    {
-      "id": "player_main",
-      "name": "플레이어",
-      "script": "[[{\"id\":\"m1\",\"type\":\"when_run_button_click\",\"params\":[null],\"statements\":[],\"extensions\":[]},{\"id\":\"m2\",\"type\":\"repeat_inf\",\"params\":[null,null],\"statements\":[[{\"id\":\"m3\",\"type\":\"if_then\",\"params\":[{\"id\":\"m4\",\"type\":\"key_pressed\",\"params\":[\"w\"]},null],\"statements\":[[{\"id\":\"m5\",\"type\":\"move_y\",\"params\":[{\"id\":\"m6\",\"type\":\"number\",\"params\":[\"5\"]}],\"statements\":[]}]],\"extensions\":[]},{\"id\":\"m15\",\"type\":\"move_x\",\"params\":[{\"id\":\"m18\",\"type\":\"number\",\"params\":[\"5\"]}],\"statements\":[]}]]}]]",
-      "objectType": "sprite",
-      "x": 0,
-      "y": 0,
-      "rotation": 0
-    }
-  ],
-  "variables": [],
-  "messages": [],
-  "functions": [],
-  "scenes": [{"name": "마을", "id": "scene_1"}]
-}
-            </textarea>
+            <textarea id="jsonInput" class="w-full h-64 p-4 font-mono text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none" placeholder='{"objects": [], "variables": [], "messages": [], "functions": [], "scenes": [{"name": "무대", "id": "scene_1"}]}'></textarea>
         </div>
 
         <div class="flex items-center gap-4">
-            <button id="convertBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg transition duration-200 disabled:opacity-50">
+            <button id="convertBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg transition duration-200 disabled:opacity-50" disabled>
                 .ent 파일로 변환 및 다운로드
             </button>
             <div id="status" class="text-sm text-gray-500">
@@ -85,7 +67,12 @@
         initPyodide();
 
         convertBtn.onclick = async () => {
-            const jsonData = jsonInput.value;
+            const jsonData = jsonInput.value.trim();
+            if (!jsonData) {
+                alert("JSON 데이터를 입력해주세요.");
+                return;
+            }
+
             logArea.classList.remove('hidden');
             logArea.innerText = "변환을 시작합니다...\n";
             convertBtn.disabled = true;
@@ -129,7 +116,7 @@ result
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = "MMORPG_Project.ent";
+                a.download = "Project.ent";
                 document.body.appendChild(a);
                 a.click();
                 document.body.removeChild(a);
