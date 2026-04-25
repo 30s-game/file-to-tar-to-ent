@@ -1,1 +1,147 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Entry Project to .ent Converter</title>
+    <script src="https://cdn.jsdelivr.net/pyodide/v0.23.4/full/pyodide.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 2s linear infinite;
+            display: inline-block;
+            vertical-align: middle;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen p-4 md:p-8">
+    <div class="max-w-4xl mx-auto bg-white rounded-xl shadow-md overflow-hidden p-6">
+        <h1 class="text-2xl font-bold text-gray-800 mb-4">엔트리 파일(.ent) 생성기</h1>
+        <p class="text-gray-600 mb-6">아래의 JSON 데이터를 수정하고 버튼을 누르면 파이썬 스크립트가 실행되어 엔트리 작품 파일이 생성됩니다.</p>
 
+        <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-2">project.json 내용</label>
+            <textarea id="jsonInput" class="w-full h-64 p-4 font-mono text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none">
+{
+  "objects": [
+    {
+      "id": "player_main",
+      "name": "플레이어",
+      "script": "[[{\"id\":\"m1\",\"type\":\"when_run_button_click\",\"params\":[null],\"statements\":[],\"extensions\":[]},{\"id\":\"m2\",\"type\":\"repeat_inf\",\"params\":[null,null],\"statements\":[[{\"id\":\"m3\",\"type\":\"if_then\",\"params\":[{\"id\":\"m4\",\"type\":\"key_pressed\",\"params\":[\"w\"]},null],\"statements\":[[{\"id\":\"m5\",\"type\":\"move_y\",\"params\":[{\"id\":\"m6\",\"type\":\"number\",\"params\":[\"5\"]}],\"statements\":[]}]],\"extensions\":[]},{\"id\":\"m15\",\"type\":\"move_x\",\"params\":[{\"id\":\"m18\",\"type\":\"number\",\"params\":[\"5\"]}],\"statements\":[]}]]}]]",
+      "objectType": "sprite",
+      "x": 0,
+      "y": 0,
+      "rotation": 0
+    }
+  ],
+  "variables": [],
+  "messages": [],
+  "functions": [],
+  "scenes": [{"name": "마을", "id": "scene_1"}]
+}
+            </textarea>
+        </div>
+
+        <div class="flex items-center gap-4">
+            <button id="convertBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg transition duration-200 disabled:opacity-50">
+                .ent 파일로 변환 및 다운로드
+            </button>
+            <div id="status" class="text-sm text-gray-500">
+                <span id="loadingMsg">파이썬 환경 준비 중...</span>
+            </div>
+        </div>
+
+        <div id="log" class="mt-6 p-4 bg-gray-800 text-green-400 font-mono text-xs rounded-lg hidden">
+            <!-- 로그 출력 영역 -->
+        </div>
+    </div>
+
+    <script>
+        const jsonInput = document.getElementById('jsonInput');
+        const convertBtn = document.getElementById('convertBtn');
+        const statusMsg = document.getElementById('loadingMsg');
+        const logArea = document.getElementById('log');
+        let pyodide;
+
+        async function initPyodide() {
+            try {
+                pyodide = await loadPyodide();
+                statusMsg.innerText = "준비 완료";
+                convertBtn.disabled = false;
+            } catch (err) {
+                statusMsg.innerText = "초기화 실패: " + err.message;
+            }
+        }
+
+        initPyodide();
+
+        convertBtn.onclick = async () => {
+            const jsonData = jsonInput.value;
+            logArea.classList.remove('hidden');
+            logArea.innerText = "변환을 시작합니다...\n";
+            convertBtn.disabled = true;
+
+            try {
+                // 파이썬 코드 실행
+                const pythonCode = `
+import tarfile
+import os
+import json
+import base64
+from io import BytesIO
+
+def create_entry_data(project_json_str):
+    # 폴더 구조 시뮬레이션
+    os.makedirs("entry/temp", exist_ok=True)
+    with open("entry/temp/project.json", "w", encoding="utf-8") as f:
+        f.write(project_json_str)
+    
+    # 메모리 내에서 tar 생성
+    out = BytesIO()
+    with tarfile.open(fileobj=out, mode="w") as tar:
+        tar.add("entry", arcname="")
+    
+    return base64.b64encode(out.getvalue()).decode()
+
+result = create_entry_data('''${jsonData}''')
+result
+                `;
+
+                const base64Data = await pyodide.runPythonAsync(pythonCode);
+                
+                // base64를 바이너리로 변환하여 다운로드
+                const binaryData = atob(base64Data);
+                const array = new Uint8Array(binaryData.length);
+                for (let i = 0; i < binaryData.length; i++) {
+                    array[i] = binaryData.charCodeAt(i);
+                }
+                
+                const blob = new Blob([array], { type: "application/octet-stream" });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = "MMORPG_Project.ent";
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+
+                logArea.innerText += "성공! 파일이 다운로드되었습니다.";
+            } catch (err) {
+                logArea.innerText += "\n에러 발생: " + err.message;
+            } finally {
+                convertBtn.disabled = false;
+            }
+        };
+    </script>
+</body>
+</html>
